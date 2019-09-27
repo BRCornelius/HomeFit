@@ -1,9 +1,6 @@
-runtime: node.js
+runtime: nodejs10
 env: flex
 entrypoint: gunicorn -b :$PORT main:app
-
-runtime_config:
-  node_version: 10.15.0
 
 # This sample incurs costs to run on the App Engine flexible environment.
 # The settings below are to reduce costs during testing and are not appropriate
