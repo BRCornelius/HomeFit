@@ -1,17 +1,18 @@
 const express = require('express');
 const bodyParser = require('body-parser');
+const bluebird = require ('bluebird')
 const verifier = require('alexa-verifier-middleware');
 const db = require('../database/dbHelpers');
 const alexaHelp = require('../alexaHelpers/helpers');
 const weather = require('../weather/weatherHelpers');
 const app = express()
-const meal = require('../Algorithms/recipe.js');
+const meal = bluebird.promisifyAll(require('../Algorithms/recipe.js'));
 const workout = require('../Algorithms/workout.js');
 const sse = require('../../sse');
 const fs = require('fs');
 const google = require('../googleAssHelpers/helpers');
+const bcrypt = require('bcrypt');
 const alexaRouter = express.Router()
-
 
 app.use('/alexa', alexaRouter);
 app.use(express.static('dist/HomeFit'));
@@ -29,12 +30,81 @@ app.use(bodyParser.urlencoded({
 
 app.post('/fulfillment', google);
 
+app.post('/diet', (req,res)=>{
+  let restrictions = req.body.params.restrictions;
+  let user = JSON.parse(req.body.params.user);
+  
+  db.getUserDietByUserId(user.id)
+  .then(diet=>{
+    let userDiet = {};
+    diet.forEach(restriction=>{
+      userDiet[restriction.name]=true;
+    })
+    return userDiet;
+  })
+  .then(diet=>{
+    restrictions.forEach(restriction=>{
+      if(diet[restriction]){
+        diet[restriction] = false;
+        db.getDietaryRestrictionsIdByName(restriction)
+        .then(id=>{
+          db.undoUserDietaryRestrictionByIds(user.id,id.id)
+        })
+      } else {
+        diet[restriction] = true;
+      }
+    })   
+    return diet
+  })
+  .then(diet=>{
+    const solution = [];
+    for(var key in diet){
+      if(diet[key]){
+        solution.push(key)
+      }
+    }
+    return solution;
+  })
+  .then(solution=>{
+    solution.forEach(noNo=>{
+      db.getDietaryRestrictionsIdByName(noNo)
+      .then(result=>{
+        db.insertIntoUserDiet(user.id, parseInt(result.id))
+      })
+    })
+  })
+  .catch(err=>console.error(err))
+  res.send('coming from server')
+})
+app.post('/logout', (req, res)=>{
+  console.log(JSON.parse(req.body.params.user).id)
+  db.updateSessionOfUserById(JSON.parse(req.body.params.user).id, false)
+  .then(()=>res.send('You have been logged out'))
+  .catch(err=>console.error(err))
+})
+app.post('/login', (req,res)=>{
+  const user = JSON.parse(req.body.params.user)
+  db.updateSessionOfUserById(user.id, true)
+  .then(() => res.send('You have been logged in'))
+  .catch(err => console.error(err))
+})
+
 app.get('/generateWO', (req, res)=> {
   wo_num = req.query.wo_num;
   diff = req.query.diff;
-  workout.generateWorkout(wo_num, diff)
-  .then(workout=>res.send(workout))
-  .catch(err=>console.error(err));
+  prev = req.query.previous;
+  index = req.query.wo_index;
+    workout.generateWorkout(wo_num, diff, prev, index)
+    .then(workout=>{
+      res.send(workout)
+    })
+    .catch(err=>console.error(err));
+})
+
+app.get('/test', (req, res)=>{
+  meal.testGet()
+  .then(recipes=>res.send(recipes))
+  .catch(err=>console.error(err))
 })
 
 app.get('/getUser', (req, res) => {
@@ -42,6 +112,11 @@ app.get('/getUser', (req, res) => {
   .then((id)=>{
     res.send(id)})
   .catch(err=>console.error(err));
+})
+
+app.post('/inProgress', (req, res)=>{
+  db.updateWOIndex(req.body.params.id, req.body.params.index)
+  db.updateLastWO(req.body.params.id, req.body.params.ex_id)
 })
 
 app.get('/getUserId', (req, res) => {
@@ -63,47 +138,50 @@ app.get('/getCompletedWO', (req, res) => {
     })
     .then(({ id }) => {
       // use the id to query the completed str and cardio tables
-      let completedWorkouts = [];
-      db.getCompCardioByUserId(id)
-        .then(compCardio => {
-          if (compCardio) {
-            completedWorkouts = completedWorkouts.concat(compCardio);
-          }
-          db.getCompStrByUserId(id)
-            .then(compStr => {
-              if (compStr) {
-                completedWorkouts = completedWorkouts
-                  .concat(compStr)
-                  .map(wo => wo.date.getDate())
-                  .filter((date, i, a) => a.indexOf(date) === i);
-                res.send(completedWorkouts);
-              }
-            })
-        })
+      return db.getCompletedWorkoutDates(id)
+    })
+    .then(compStr => {
+      if (compStr) {
+        const result = compStr
+          .map(wo => wo.date.getDate())
+          .filter((date, i, a) => a.indexOf(date) === i);
+        res.send(result);
+      }
     })
     .catch(err=>console.error(err));
 });
 
 app.get('/homeFitAuth', (req, res) => {
-  db.getPasswordByEmail(req.query.email)
-  .then(password=> {
-    res.send(password)
+  db.getUserInfoByEmail(req.query.email)
+  .then(user=> {
+    bcrypt.compare(req.query.password, user.password, (err, result) => {
+      if (err) {
+        console.error(err);
+      } else {
+        db.updateSessionOfUserById(user.id, true)
+        res.send(result);
+      }
+    })
   })
 })
 
-app.post('/completed', (req, res)=>{
+app.post('/completed', (req, res)=> {
   var d = new Date();
-  db.insertIntoCompStr(1, req.body.params.id, 10, true, d)
+  db.insertIntoWorkouts(req.body.params.id, d, true)
   .then(()=>res.send('tallied!'))
 })
 
-app.get('/getMyWorkOut', (req,res)=>{
-  const int = parseInt(req.query.id)
-  db.getWorkoutsByUserID(int)
-  .then((workouts) => {
-    res.send(workouts.exercises)
-  })
-  .catch((ugh)=>console.error(ugh));
+app.post('/update', (req, res)=>{
+  let weight = req.body.params.weight;
+  let numPushUps = req.body.params.push_ups;
+  let jogDist = req.body.params.miles;
+  let age = req.body.params.age;
+  let squatComf = req.body.params.squats;
+  let goals  = req.body.params.goals;
+  let username = req.body.params.userName;
+  let id = req.body.params.id;
+  db.updateUser(weight,numPushUps,jogDist,age,squatComf,goals,username,id)
+  .then(()=>res.end())
 })
 
 app.post('/updateWorkouts', (req, res)=>{
@@ -123,11 +201,12 @@ app.post('/weather', (req, res) => {
       weatherInfo.temp = response[0].temperature;
       weatherInfo.apparentTemp = response[0].apparentTemperature;
       weatherInfo.humidity = response[0].humidity,
-        weatherInfo.icon = response[0].icon
+      weatherInfo.icon = response[0].icon
       weatherInfo.time_of_day = response[1];
       weatherInfo.city = response[2].City;
       weatherInfo.state = response[2].State;
       weatherInfo.country = response[2].Country;
+      console.log(weatherInfo)
     })
     .then(() => {
       return weather.runningRecommendations(weatherInfo)
@@ -137,7 +216,7 @@ app.post('/weather', (req, res) => {
     })
     .then(() => db.getWeatherImages(weatherInfo.text, weatherInfo.time_of_day))
     .then(result => {
-      weatherInfo.url = result
+      weatherInfo.url = result.url
     })
     .then(() => {
       res.send(weatherInfo)
@@ -145,74 +224,41 @@ app.post('/weather', (req, res) => {
     .catch((err) => console.error(err /*'Good luck finding that error, bitch'*/ ))
   })
 
-app.get('/dinner', (req,res)=> {
-  let meals;
-  let dinner = [];
-  Promise.all([
-    meal.getChicken(300, 700, "alcohol-free"), 
-    meal.getBeef(300, 700, "alcohol-free"), 
-    meal.getFish(300, 700, "alcohol-free"),
-    meal.getSteak(300, 700, "alcohol-free")
-  ])
-  .then(recipes => {
-    meals = recipes.reduce((acc, curr) => acc.concat(curr), [])
-    return meals;
-  }).then(meals => {
-    return meal.narrowDown(meals)
-  }).then(randomArray => {
-    randomArray.forEach(index => dinner.push(meals[index].recipe))
-  }).then(() => {
-    res.send(dinner)
-  }).catch(err => console.error(err))
-});
+
+  //get request to db to retrieve username
+app.get('/username', (req, res) => {
+    db.getUserInfoByEmail(req.query.user)
+      .then((user) => res.send(user))
+  })
+
+app.get('/dinner', (req,res)=>{
+  const user = JSON.parse(req.query.user)
+  const cal = JSON.parse(req.query.calorieProfile)
+  db.getUserDietByUserId(user.id)
+  .then(diet => meal.getDinner(cal.lunchMin, cal.lunchMax, diet))
+  .then(recipes=> recipes.map(recipe=>recipe.recipe))
+  .then(dinner=>res.send(dinner))
+  .catch(err=>console.error(err));
+})
 
 app.get('/lunch', (req,res) => {
-  let meals;
-  let lunch = [];
-  meal.getLunch(0, 500, "alcohol-free")
-  .then(recipes => {
-    meals = recipes.reduce((acc, curr) => acc.concat(curr), [])
-    return meals;
-  }).then(meals => {
-    return meal.narrowDown(meals);
-  }).then(randomArray => {
-    randomArray.forEach(index => lunch.push(meals[index].recipe))
-  }).then(() => {
-    res.send(lunch)
-  }).catch(err => console.error(err))
-  .catch(err=>console.error(err))
+  const cal = JSON.parse(req.query.calorieProfile)
+  meal.getLunch(cal.lunchMin, cal.lunchMax, '')
+    .then(recipes => recipes.map(recipe => recipe.recipe))
+    .then(lunch=>res.send(lunch))
+    .catch(err => console.error(err))
 })
 
 app.get('/breakfast', (req, res) => {
-  let meals;
-  let breakfast = [];
-  Promise.all([meal.getBreakfast(300, 700, "alcohol-free"), meal.getYogurt(300, 700, "alcohol-free"), meal.getEggs(300, 700, "alcohol-free")])
-  .then(recipes=>{
-    meals = recipes.reduce((acc,curr)=>acc.concat(curr),[])
-    return meals;
-  }).then(meals=>{
-    return meal.narrowDown(meals)
-  }).then(randomArray=>{
-    randomArray.forEach(index=>breakfast.push(meals[index].recipe))
-  }).then(()=>{
-    res.send(breakfast)
-  }).catch(err=>console.error(err))
-})
-
-app.get('/signupWO', (req, res) => {
-  return Promise.all([
-      db.getUs,
-      workout.generateWorkoutSignUp(3)
-    ])
-    .then(([user, regimen]) => {
-      db.insertIntoExerciseWorkoutsByUserIdAndArrayOfJson(user.id, regimen);
-    })
-    .catch((err) => {
-      console.error(err);
-    });
+  const cal = JSON.parse(req.query.calorieProfile)
+  meal.getBreakfast(cal.lunchMin, cal.lunchMax, '')
+    .then(recipes => recipes.map(recipe => recipe.recipe))
+    .then(dinner => res.send(dinner))
+    .catch(err => console.error(err));
 })
 
 app.post('/signUp', (req, res) =>{
+  console.log(req.body.params)
   let weight = req.body.params.weight;
   let numPushUps = req.body.params.push_ups;
   let jogDist = req.body.params.miles;
@@ -224,21 +270,136 @@ app.post('/signUp', (req, res) =>{
   let email  = req.body.params.email;
   let username = req.body.params.userName;
   let password = req.body.params.password;
-  db.addNewUser(weight, numPushUps, jogDist, age, sex, height, squatComf, goals, email, username, password)
-    .then(()=>{
-      return Promise.all([db.getUserIdByEmail(email)])
+  let securityQuestion = req.body.params.securityQuestion;
+  let securityQuestionAnswer = req.body.params.securityQuestionAnswer;
+
+  bcrypt.genSalt(10, function (err, salt) {
+    bcrypt.hash(password, salt, (err, hash)=> {
+      db.addNewUser(weight, numPushUps, jogDist, age, sex, height, squatComf, goals, username, email, securityQuestion, securityQuestionAnswer, hash)
+        .then(()=>{
+          return db.getUserInfoByEmail(email)
+        })
+        .then(user=>{
+          db.updateSessionOfUserById(user.id, true)
+          return user;
+        })
         .catch(err=>console.error(err));
+    res.end();
+    });
+  });
+})
+
+//function to test user security question answer against saved answer in db
+
+app.post('/security', (req, res) => {
+  console.log(req.body.params);
+  db.getUserInfoByEmail(req.body.params.email)
+    .then(user => {
+      const securityObject = {
+        question: user.security_question,
+        answer: user.security_answer
+      }
+      res.send(securityObject);
     })
-    .then(([user,regimen])=> {
-      const ins = [];
-      regimen.forEach(exer=>{
-        ins.push(JSON.stringify(exer))
+})
+
+//function to reset password
+app.get('/userPassword', (req, res) => {
+  console.log(req.query.user)
+  db.getUserInfoByEmail(req.query.user)
+    .then(user => {
+      res.send(user);
+    })
+})
+
+app.post('/newPassword', (req, res) => {
+  console.log(req.body.params, 'line 315')
+  const email = req.body.params.email;
+  const password = req.body.params.newPassword;
+  db.getUserInfoByEmail(email)
+    .then(user => {
+      console.log(user)
+      bcrypt.genSalt(10, (err, salt) => {
+        bcrypt.hash(password, salt, (err, hash) => {
+          db.updatePassword(hash, user.id);
+          res.end();
+        })
       })
-      db.insertIntoExerciseWorkoutsByUserIdAndArrayOfJson(user.id, ins)
     })
-    .catch(err=>console.error(err));
-  res.end();
-});
+})
+//function to get dietary restrictions from db to display on savedDiet page
+app.get('/userDiet', (req, res) => {
+  console.log(req.query.user);
+  const user = req.query.user;
+  const userObj = {
+    user: req.query.user,
+    diet: []
+  };
+
+  db.getUserIdByEmail(user)
+    .then(user => {
+      db.getUserDietByUserId(user.id)
+        .then(diet => {
+          diet.forEach(dietObj => {
+            console.log(dietObj.name);
+            for (let key in dietObj) {
+              if (key === 'name') {
+                userObj.diet.push(dietObj[key])
+              }
+            }
+          })
+          res.send(userObj)
+        });
+    })
+})
+
+app.post('/updateDiet', (req, res) => {
+  const restrictions = req.body.params.restrictions;
+  const userObj = {
+    email: req.body.params.email
+  };
+  db.getUserIdByEmail(req.body.params.email)
+    .then(user => {
+      userObj.id = user.id;
+      db.getUserDietByUserId(user.id)
+        .then(diet => {
+          if (diet.length > 0) {
+            console.log(diet, 'line 325')
+            diet.forEach(currRestrict => {
+              userObj[currRestrict.name] = currRestrict.name;
+            })
+            for (let key in userObj) {
+              if (key === userObj[key]) {
+                db.getDietaryRestrictionsIdByName(userObj[key])
+                  .then(dietId => {
+                    userObj.dietId = dietId.id;
+                    db.undoUserDietaryRestrictionByIds(userObj.id, userObj.dietId)
+                      .then(() => {
+                        restrictions.forEach(restriction => {
+                          db.getDietaryRestrictionsIdByName(restriction)
+                            .then(newRestriction => {
+                              console.log(userObj.id, newRestriction.id, 'line 339')
+                              db.insertIntoUserDiet(userObj.id, newRestriction.id)
+                                .then(() => res.end());
+                            })
+                        })
+                      })
+                  })
+                }
+            }
+          } else {
+            restrictions.forEach(restriction => {
+              db.getDietaryRestrictionsIdByName(restriction)
+                .then(newRestrict => {
+                  console.log(userObj, newRestrict.id, 'line 355');
+                  db.insertIntoUserDiet(userObj.id, newRestrict.id)
+                  .then(() => res.end());
+                })
+            })
+          }
+        })
+    })
+})
 
 alexaRouter.post('/fitnessTrainer', (req, res) => {
   if (req.body.request.type === 'LaunchRequest') {
@@ -361,8 +522,25 @@ alexaRouter.post('/fitnessTrainer', (req, res) => {
   }
 });
 
-const port = 3000;
+app.post('/savePartial', (req, res) => {
+  let { id, exerciseId } = req.body;
+  const d = new Date();
+  db.insertPartialWorkout(id, exerciseId, d)
+    .then()
+    .catch(error => console.error());
+  res.send('got it')
+})
+
+app.get('/calories', (req,res)=>{
+  meal.setCalories(req.query.user, req.query.completes, req.query.today)
+  .then(calorieProfile=>{
+    res.send(calorieProfile)
+  })
+  .catch(err=>console.error(err))
+})
+const port = 81;
 app.listen(port, () => {
   console.log(`HomeFit is listening on port ${port}!`);
   app.keepAliveTimeout = 0;
 });
+

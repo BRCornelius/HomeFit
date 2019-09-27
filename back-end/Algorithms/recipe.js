@@ -1,156 +1,139 @@
 // const axios = require('axios');
 // var Promise = require('bluebird');
-var request = /*Promise.promisify(*/require('request');
+const bluebird = require('bluebird');
+var request = bluebird.promisify(require('request'));
 const express = require('express');
 const config = require('../../config.js');
 const app = express();
 const axios = require('axios');
 
+const getMeal = function (meat, calorieMin, calorieMax, dietaryRestrictions) {
+  const adjustment = dietaryRestrictions ? dietaryRestrictions.map(restriction => `&${restriction.type}=${restriction.name}`).reduce((acc, curr) => acc.concat(curr), '') : '';
+  return axios.get(`https://api.edamam.com/search?q=${meat}&app_id=${config.EDAMAM_API_ID}&app_key=${config.EDAMAM_API_KEY}&from=0&to=30&calories=${calorieMin}-${calorieMax}${adjustment}`)
+    .then(recipes => recipes.data.hits)
+};
+const narrowDown = function (array) {
+  let randomNumberArray = [];
+  const meals = [];
+  return new Promise((resolve, reject) => {
+    let i = 1;
+    while (i <= 12) {
+      randomNumberArray.push(Math.floor(Math.random() * array.length));
+      i++;
+    }
+    randomNumberArray.map(num => meals.push(array[num]), [])
+    if (meals.length === 12) {
+      resolve(meals)
+    } else {
+      reject('narrowing rejection')
+    }
+  })
+}
 
 module.exports = {
-  getBreakfast: function (calorieMin, calorieMax, dietaryRestrictions) {
-    const adjustment = dietaryRestrictions ? `&health=${dietaryRestrictions}` : '';
-    return new Promise((resolve, reject) => {
-      request(`https://api.edamam.com/search?q=breakfast&app_id=${config.EDAMAM_API_ID}&app_key=${config.EDAMAM_API_KEY}&calories=${calorieMin}-${calorieMax}${adjustment}`, function (error, response, body) {
-        if (body) {
-          body = JSON.parse(body)
-          resolve(body.hits)
-        } else {
-          reject('Breakfast Error')
+  getBreakfast: (calorieMin, calorieMax, dietaryRestrictions)=>{
+    const meats = ['eggs', 'yogurt', 'breakfast']
+    return bluebird.map(meats, meat => getMeal(meat, calorieMin, calorieMax))
+      .then(meals => narrowDown(meals.reduce((all, curr) => all.concat(curr), [])))
+  },
+  getLunch: (calorieMin, calorieMax, dietaryRestrictions)=> {
+    const meats = ['taco', 'sandwich', 'salad']
+    return bluebird.map(meats, meat=> getMeal(meat, calorieMin, calorieMax))
+      .then(meals => narrowDown(meals.reduce((all, curr) => all.concat(curr), [])))
+  },
+  getDinner: (calorieMin, calorieMax, dietaryRestrictions) => {
+    const meats = ['steak', 'chicken', 'beef', 'fish', 'pork', 'ham', 'tuna', 'salad']
+    return bluebird.map(meats, meat=>getMeal(meat, calorieMin, calorieMax, dietaryRestrictions))
+      .then(meals => narrowDown(meals.reduce((all, curr)=> all.concat(curr), [])))
+  },
+  setCalories: (user, completes, today)=>{
+    let calories = {};
+    user = JSON.parse(user);
+    completes = parseInt(completes);
+    if(typeof today === 'string'){
+      today = parseInt(today)
+    }
+    return new Promise((resolve,reject)=>{
+      if (user.sex === 'm'){
+        if(user.goals === 1){
+          calories = {
+            breakfastMin: 0,
+            breakfastMax: 700,
+            lunchMin: 0,
+            lunchMax: 500,
+            dinnerMin: 0,
+            dinnerMax: 400
+          }
+        } if(user.goals === 2){
+          calories = {
+            breakfastMin: 0,
+            breakfastMax: 975,
+            lunchMin: 0,
+            lunchMax: 700,
+            dinnerMin: 0,
+            dinnerMax: 550
         }
-      })
-    })
+      } else if(user.goals === 3){
+        calories = {
+          breakfastMin: 0,
+          breakfastMax: 1225,
+          lunchMin: 0,
+          lunchMax: 875,
+          dinnerMin: 0,
+          dinnerMax: 700
+        }
+      }
+    } else if (user.sex === 'f'){
+      if (user.goals === 1) {
+        calories = {
+          breakfastMin: 0,
+          breakfastMax: 550,
+          lunchMin: 0,
+          lunchMax: 400,
+          dinnerMin: 0,
+          dinnerMax: 300
+        }
+      }
+      if (user.goals === 2) {
+        calories = {
+          breakfastMin: 0,
+          breakfastMax: 750,
+          lunchMin: 0,
+          lunchMax: 550,
+          dinnerMin: 0,
+          dinnerMax: 425
+        }
+      } else if (user.goals === 3) {
+        calories = {
+          breakfastMin: 0,
+          breakfastMax: 1050,
+          lunchMin: 0,
+          lunchMax: 750,
+          dinnerMin: 0,
+          dinnerMax: 600
+        }
+      }
+    }
+    if(Array.isArray(completes)){
+      if(completes.includes(today)){
+        calories.breakfastMax = calories.breakfastMax + 100;
+        calories.lunchMax = calories.lunchMax + 150;
+        calories.dinnerMax = calories.dinnerMax + 100;
+      }
+    } else if(completes === today){
+      calories.breakfastMax = calories.breakfastMax + 100;
+      calories.lunchMax = calories.lunchMax + 150;
+      calories.dinnerMax = calories.dinnerMax + 100;
+    }
+    if(user){
+      resolve(calories)
+    }else {
+      reject('calorie rejection')
+    }
     
-  },
-  getEggs: function (calorieMin, calorieMax, dietaryRestrictions) {
-    const adjustment = dietaryRestrictions ? `&health=${dietaryRestrictions}` : '';
-    return new Promise((resolve, reject)=>{
-      request(`https://api.edamam.com/search?q=eggs&app_id=${config.EDAMAM_API_ID}&app_key=${config.EDAMAM_API_KEY}&from=0&to=12&calories=${calorieMin}-${calorieMax}${adjustment}`, function (error, response, body) {
-       if (body) {
-         body = JSON.parse(body)
-         resolve(body.hits)
-       } else {
-          reject('Egg rejection')
-        }
-      })
     })
   },
-  getYogurt: function (calorieMin, calorieMax, dietaryRestrictions) {
-    const adjustment = dietaryRestrictions ? `&health=${dietaryRestrictions}` : '';
-    return new Promise((resolve, reject)=>{
-      request(`https://api.edamam.com/search?q=yogurt&app_id=${config.EDAMAM_API_ID}&app_key=${config.EDAMAM_API_KEY}&calories=${calorieMin}-${calorieMax}${adjustment}`, function (error, response, body) {
-        if (body) {
-          body = JSON.parse(body)
-          resolve(body.hits)
-        } else {
-          reject('Yogurt rejection')
-        }
-      })
-    })
-  },
-
-  getLunch: function (calorieMin, calorieMax, dietaryRestrictions) {
-    let adjustment = dietaryRestrictions ? `&health=${dietaryRestrictions}` : '';
-    return new Promise((resolve, reject)=>{
-      request(`https://api.edamam.com/search?q=lunch&app_id=${config.EDAMAM_API_ID}&app_key=${config.EDAMAM_API_KEY}&from=0&to=30&calories=${calorieMin}-${calorieMax}${adjustment}`, function (error, response, body) {
-        if(body){
-          body = JSON.parse(body)
-          resolve(body.hits)
-        } else {
-          reject('lunch rejection')
-        }
-    }) 
-  })
-  },
-
-  getSteak: function (calorieMin, calorieMax, dietaryRestrictions) {
-    const adjustment = dietaryRestrictions ? `&health=${dietaryRestrictions}` : '';
-    return new Promise((resolve, reject)=>{
-      request(`https://api.edamam.com/search?q=steak&app_id=${config.EDAMAM_API_ID}&app_key=${config.EDAMAM_API_KEY}&from=0&to=10&calories=${calorieMin}-${calorieMax}${adjustment}`, function (error, response, body) {
-        if (body) {
-          body = JSON.parse(body)
-          resolve(body.hits)
-        } else {
-          reject('Steak rejection')
-        }
-      })
-    })
-  },
-
-  getBeef: function (calorieMin, calorieMax, dietaryRestrictions) {
-    const adjustment = dietaryRestrictions ? `&health=${dietaryRestrictions}` : '';
-    return new Promise((resolve, reject)=>{
-      request(`https://api.edamam.com/search?q=beef&app_id=${config.EDAMAM_API_ID}&app_key=${config.EDAMAM_API_KEY}&from=0&to=10&calories=${calorieMin}-${calorieMax}${adjustment}`, function (error, response, body) {
-        if (body) {
-          body = JSON.parse(body)
-          resolve(body.hits)
-        } else {
-          reject('Beef rejection')
-        }
-      })
-    })
-  },
-
-  getChicken: function (calorieMin, calorieMax, dietaryRestrictions) {
-    const adjustment = dietaryRestrictions ? `&health=${dietaryRestrictions}` : '';
-    return new Promise((resolve, reject)=>{
-      request(`https://api.edamam.com/search?q=chicken&app_id=${config.EDAMAM_API_ID}&app_key=${config.EDAMAM_API_KEY}&from=0&to=10&calories=${calorieMin}-${calorieMax}${adjustment}`, function (error, response, body) {
-        if (body) {
-          body = JSON.parse(body)
-          resolve(body.hits)
-        } else {
-          reject('Chicken rejection')
-        }
-      })
-    })
-  },
-  getFish: function (calorieMin, calorieMax, dietaryRestrictions, callback) {
-    const adjustment = dietaryRestrictions ? `&health=${dietaryRestrictions}` : '';
-    return new Promise((resolve, reject)=>{
-      request(`https://api.edamam.com/search?q=fish&app_id=${config.EDAMAM_API_ID}&app_key=${config.EDAMAM_API_KEY}&from=0&to=10&calories=${calorieMin}-${calorieMax}${adjustment}`, function (error, response, body) {
-        if (body) {
-          body = JSON.parse(body)
-          resolve(body.hits)
-        } else {
-          reject('Fish rejection')
-        }
-      })
-    })
-  },
-
-  narrowDown: function(array){
-    let result = [];
-    return new Promise((resolve, reject)=>{
-      let i = 1;
-      while(i <= 7){
-        result.push(Math.floor(Math.random() * array.length));
-        i++;
-      }
-      if(result.length === 7){
-        resolve(result)
-      } else {
-        reject('narrowing rejection')
-      }
-    })
-  },
-
-  generateSeven: function(fromArray, toArray) {
-    return new Promise((resolve, reject)=>{
-      let randScreen = [];
-      let randomNumbers = {};
-      for (let i = 1; i <= 7; i++) {
-        let gen = Math.floor(Math.random() * fromArray.length);
-        randomNumbers[i] = randScreen.includes(gen) ? Math.floor(Math.random() * fromArray.length) : gen;
-      }
-      let randomNumberArray = Object.values(randomNumbers);
-      randomNumberArray.forEach(randomNumber => {
-        toArray.push(fromArray[randomNumber]);
-        if(toArray.length === 7){
-          resolve(toArray)
-        } else {
-          reject('Seven rejection')
-        }
-      });     
-    })
-  },
+  testGet: ()=>{
+    return getMeal('salad', 0, 1000, ['vegetarian', 'high-protein'])
+  }
 }

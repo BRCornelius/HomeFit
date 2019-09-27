@@ -5,6 +5,9 @@
       padding-left: 200px;
       padding-right: 200px;
     }
+    .rep_button {
+      font-size: 1.5vw;
+    }
 }
 
 @font-face {
@@ -13,17 +16,28 @@
 }
 
 .container {
-  background-color: #1b1b1b;
+  background-color: #b0c4de;
+  background-size: contain;
+  min-width: 100%;
+  min-height: 100%;
+  height: 100%;
 }
 
 .nav {
   border-radius: 0px;
-  background-color:#CCCCFF;
+  background-color:#729085;
   text-align: center;
+  font-family: 'Josefin Sans', sans-serif;
+}
+
+.nav-item {
+  font-family: 'Josefin Sans', sans-serif;
 }
 
 .nav a {
-  color: white;
+  font-family: 'Josefin Sans', sans-serif;
+  text-transform: uppercase;
+  color: #F5F4F3;
 }
 
 img {
@@ -36,31 +50,69 @@ iframe {
   width: 100%;
   height: 100%;
 }
+/* .row {
+  display: flex
+} */
 
-.jumbotron {
-  background-color: #333366;
-  /* background-color: #638493; */
-  max-width: 100%;
-  max-height: 100%;
+
+.jumbotronSet {
+  background-color: #729085;
+  width: 100%;
+  display: flex;
+  height: 100%;
   text-align: center;
   align-items: center;
-  border-radius: 0px;
+  border-radius: 10px;
 }
+
 h2 {
-  color: #CCCCFF;
-  font-family: sans-serif;
+  color: #27213B;
+  font-size: 35px;
+  text-align: center;
+  font-family: 'Josefin Sans', sans-serif;
 }
+
 h3 {
   font-family: digital;
   font-size: 75px;
-  color: #CCCCFF;
+  color: #F5F4F3;
 }
 
 .reps_title {
   float: left;
 }
 .rep_button {
-  background-color: #CCCCFF;
-  color: white;
-  position: absolute;
+  font-family: 'Josefin Sans', sans-serif;
+  text-transform: uppercase;
+  border-radius: 5px;
+  background-color: #B73A58;
+  color: #F5F4F3;
+  font-size: 2em;
+  /* font-weight: bold; */
+  position: relative;
+  width: 100%;
+  height:100%;
+}
+
+.table-responsive {
+  height: 100%;
+  width: 100%;
+  display: inline-table;
+  table-layout: fixed;
+}
+
+.rowC {
+  line-height: 30px
+}
+
+.jumbotron {
+  background-color: #729085;
+  width: 90%;
+  min-height: 100%;
+  text-align: center;
+  display: table-cell;
+  border: 3px;
+  border-radius: 11px;
+  border-color: #27213B;
+  border-style: solid
 }

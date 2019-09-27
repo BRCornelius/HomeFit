@@ -7,33 +7,70 @@
 }
 
 .container {
-  background-color: black;
+  background-color: #b0c4de;
 }
 
 .nav {
   border-radius: 0px;
-  background-color:#CCCCFF;
+  background-color:#729085;
   text-align: center;
+  font-family: 'Josefin Sans', sans-serif
 }
 
 .nav a {
-  color: white;
+  color: #F5F4F3;
 }
 
-h1 {
-  color: #CCCCFF;
+.table {
+  max-width: 100%;
+  /* height: 100%; */
+}
+h2 {
+
+  font-family: 'Josefin Sans', sans-serif;
+
+  color: #27213B;
+  /* font-family: 'Ubuntu'; */
 }
 
 p {
-  color: #CCCCFF;
+  font-family: 'Josefin Sans', sans-serif;
+  color: #F5F4F3;
+  /* font-family: 'Ubuntu'; */
 }
 td {
-  color: #CCCCFF;
+  color: #F5F4F3;
 }
 
 .submit_button {
   width: 100%;
-  background-color: #CCCCFF;
+
+  height: 7%;
+  font-family: 'Josefin Sans', sans-serif;
+  border-radius: 5px;
+
+  background-color: #B73A58;
   text-align: center;
-  color: white;
+  position: relative;
+  top: 5px;
+  color: #F5F4F3;
+  /* font-family: 'Ubuntu' */
+}
+
+.input {
+  font-family: 'Josefin Sans', sans-serif;
+  width: 100%;
+  min-height: 100%;
+  display: table-cell;
+  border-radius: 5px;
+  background-color: #B3B3FF;
+  text-align: center;
+  color: #F5F4F3;
+  /* font-family: 'Ubuntu' */
+}
+
+.table-responsive {
+  height: 100%;
+  width: 100%;
+  display: table;
 }

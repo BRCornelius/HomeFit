@@ -87,11 +87,11 @@ module.exports = {
     return new Promise((resolve, reject) => {
       if (number > 5 && number < 19) {
         text = 'day';
-      } else if (number > 1 || number > 18) {
+      } else if (number > -1 && number < 6 || number > 18) {
         text = 'night';
       }
       if (text === 'day' || text === 'night') {
-        resolve(text)
+        resolve(text, 'text')
       } else {
         reject('time of day label rejection')
       }

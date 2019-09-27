@@ -1,48 +1,31 @@
 <router-outlet></router-outlet>
+<script src="js/bootstrap.min.js"></script>
 <div class="container">
   <div class="row">
     <div class="col-md-12">
       <ul class="nav">
         <li class="nav-item">
-          <a class="nav-link active" routerLink="/home">Home</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" routerLink="/workout">Workout</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" routerLink="/personalInfo">Settings</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link">Logout</a>
+          <a class="nav-link" routerLink="/signup">Back</a>
         </li>
       </ul>
   <div class="row">
     <div class="col-md-12">
-      <!-- <div class="btn-group" role="group">
-        <a routerLink="/home">
-          <button class="btn btn-secondary" type="button">Home</button>
-        </a>
-        <button class="btn btn-secondary" type="button">Meal</button>
-        <a routerLink="/workout"><button class="btn btn-secondary" type="button">Workout</button></a>
-        <a routerLink="/">
-          <button class="btn btn-secondary" type="button">Logout</button>
-        </a>
-      </div> -->
       <form role="form">
         <div class="form-group">
-          <label for="username">Preferred Name</label>
+          <label for="username">Username</label>
           <input  type="text"
                   class="form-control" 
                   id="username"
-                  placeholder="placeholder"
+                  placeholder="Enter Name"
                   (input)="updateUsername($event)"/>
         </div>
         <div class="form-group">
-          <label for="sex">Sex</label>
-          <input  type="text" 
-                  class="form-control" 
-                  id="sex" 
-                  (input)="updateSex($event)"/>
+          <label for="sex">Gender</label>
+            <select class="scrollable-menu" id="sex" (click)="updateSex()">
+              <option value="f">Female</option>
+              <option value="m">Male</option>
+              <!-- <option value="n/a">Prefer Not to Answer</option> -->
+            </select>
         </div>
         <div class="form-group">
           <label for="emailInput">Email</label>
@@ -61,11 +44,39 @@
                   (input)="updatePassword($event)"/>
         </div>
         <div class="form-group">
+          <label for="questionInput">Security Question</label>
+          <select class="scrollable-menu" id="question" (click)="updateSecurityQuestion()">
+            <option value="1">What is your mother's maiden name?</option>
+            <option value="2">What was the name of the high school you attended?</option>
+            <option value="3">What is the name of your favorite pet?</option>
+          </select>
+          <input  type="question"  
+                  class="form-control" 
+                  id="securityQuestion" 
+                  placeholder="Answer to Security Question"
+                  (input)="updateSecurityQuestionAnswer($event)"/>
+        </div>
+        <!-- <div class="dropdown">
+        
+          <button class="btn btn-primary dropdown-toggle" 
+                  type="button" 
+                  id="dropdownMenuButton" 
+                  data-toggle="dropdown"
+                  (click)="">
+            Security Question
+          </button>
+          <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+            <a class="dropdown-item disabled" href="#">What is your mother's maiden name?</a> <a class="dropdown-item" href="#">What was the name of the high school you attended?</a> <a class="dropdown-item"
+              href="#">What is the name of your favorite pet?</a>
+          </div>
+        </div> -->
+        <div class="form-group">
           <label for="ageInput">Age</label>
           <input  type="number" 
                   class="form-control" 
                   id="age" 
                   [value]="text"
+                  placeholder="Enter Age in Years"
                   (input)="updateAge($event)"/>
         </div>
         <div class="form-group">
@@ -74,6 +85,7 @@
                   class="form-control" 
                   id="height" 
                   [value]="number"
+                  placeholder="Enter Height in Inches"
                   (input)="updateHeight($event)"/>
         </div>
         <div class="form-group">
@@ -82,15 +94,16 @@
                   class="form-control" 
                   id="weight" 
                   [value]="text"
+                  placeholder="Enter Weight in Pounds"
                   (input)="updateWeight($event)"/>
         </div>
-         <div class="form-group">
-          <label for="goals">Goal</label>
-          <input  type="number" 
-                  class="form-control" 
-                  id="goal" 
-                  [value]="text"
-                  (input)="updateGoals($event)"/>
+        <div class="form-group">
+          <label for="goals">Goals<br /></label>
+          <select class="scrollable-menu" id="goalId" (click)="updateGoals()">
+            <option value="2">Stay Active</option>
+            <option value="1">Lose Weight</option>
+            <option value="3">Gain Mass</option>
+          </select>
         </div>
         <div class="form-group">
           <label for="pushups">Pushups</label>
@@ -98,15 +111,16 @@
                   class="form-control" 
                   id="pushups" 
                   [value]="text"
+                  placeholder="Enter Number of Pushups"
                   (input)="updatePushUps($event)"/>
         </div>
         <div class="form-group">
-          <label for="squats">Squats</label>
-          <input  type="number" 
-                  class="form-control" 
-                  id="squats" 
-                  [value]="text"
-                  (input)="updateSquats($event)"/>
+          <label for="squats">How comfortable are you with squats?</label>
+          <select class="scrollable-menu" id="squats" (click)="updateSquats()">
+            <option value="2">Moderately Comfortable</option>
+            <option value="1">Not At All</option>
+            <option value="3">Very Comfortable</option>
+          </select>
         </div>
         <div class="form-group">
           <label for="miles">Jogging</label>
@@ -114,46 +128,24 @@
                   class="form-control" 
                   id="miles"
                   [value]="text"
+                  placeholder="Enter Distance in Miles"
                   (input)="updateMiles($event)"/>
         </div>
       </form>
-      <!-- <ul>
-        <div class="slidecontainer">
-          <li class="list-item">
-            Goals
-              <input type="range" min="1" max="3" value="2" class="slider" id="myRange">
-              <output id="goals"></output>
-              <p>{{this.goals}}</p>
-          </li>
-          <li class="list-item">
-            How many push-ups can you do?
-            <input type="range" min="1" max="50" value="25" class="slider" id="myRange" (input)="updatePushUps($event)">
-          </li>
-          <li class="list-item">
-            How do you feel about squats?
-            <input type="range" min="1" max="3" value="2" class="slider" id="myRange" (input)="updateSquats($event)">
-          </li>
-          <li class="list-item">
-            How far can you comfortably jog (in miles)?
-            <input type="range" min="1" max="10" value="5" class="slider" id="myRange" (input)="updateMiles($event)">
-          </li>
-          <li class="pulldown">
-            <select (input)="updateHeight($event)">
-              <option value="male"> Male </option>
-              <option value="female"> Female </option>
-            </select>
-            <p>{{this.sex}}</p>
-          </li>
-        </div>
-      </ul> -->
-      
     </div>
   </div>
   <div class="row">
     <div class="col-md-12">
-      <a routerLink="/dietaryRestrictions">
-        <button type="button" class="next_button" (click)="addUser()" (click)="newUsername()">Next</button>
-      </a>
+      
+        <button type="button" 
+                class="next_button" 
+                (click)="addUser()" 
+                (click)="newUsername()">Submit</button>
+      
     </div>
+    <br>
+    <br>
+    <br>
   </div>
 </div>
+

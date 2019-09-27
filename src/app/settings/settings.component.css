@@ -8,25 +8,25 @@
 }
 
 .container {
-  background-color: black;
+  background-color: #000000;
 }
 
 h2 {
-  color: #FAA24A;
+  color: #33CC33;
 }
 
 p {
-  color: #FAA24A;
+  color: #33CC33;
 }
 
 
 .button {
-  background-color: #FAA24A;
-  color: #FFFFFF;
+  background-color: #CCD0F5;
+  color: #33CC33;
 }
 
 .next_button {
-  background-color: #FAA24A;
-  color: #FFFFFF;
+  background-color: #CCD0F5;
+  color: #33CC33;
   width: 100%;
 }

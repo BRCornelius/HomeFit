@@ -7,26 +7,37 @@
 }
 
 .container {
-  background-color: black;
+  background-color: #b0c4de;
+}
+
+.scrollable-menu {
+  font-family: 'Josefin Sans', sans-serif;
+  background-color:#729085;
+  color: #F5F4F3;
+  width: 100%
 }
 
 label {
-  color: #CCCCFF;
+  font-family: 'Josefin Sans', sans-serif;
+  color: #F5F4F3;
 }
 
 .nav {
   border-radius: 0px;
-  background-color:#CCCCFF;
+  background-color:#729085;
   text-align: center;
 }
 
 .nav a {
-  color: white;
+  font-family: 'Josefin Sans', sans-serif;
+  color: #F5F4F3;
 }
 
 .next_button {
   width: 100%;
-  background-color: #CCCCFF;
+  font-family: 'Josefin Sans', sans-serif;
+  text-transform: uppercase;
+  background-color: #B73A58;
   text-align: center;
-  color: white;
+  color: #F5F4F3;
 }

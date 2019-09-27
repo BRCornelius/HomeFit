@@ -9,7 +9,13 @@ import { SettingsPersonalInfoComponent } from './settings-personal-info/settings
 import { DietaryRestrictionsComponent } from './dietary-restrictions/dietary-restrictions.component';
 import { WorkoutComponent } from './workout/workout.component';
 import { MealsComponent } from './meals/meals.component';
-import { LoginComponent } from './login/login.component'
+import { LoginComponent } from './login/login.component';
+import { LogoutComponent } from './logout/logout.component';
+import { UpdateComponent } from './update/update.component';
+import { SavedDietComponent } from './saved-diet/saved-diet.component';
+import { RetrieveLoginComponent } from './retrieve-login/retrieve-login.component';
+import { PasswordResetComponent } from './password-reset/password-reset.component';
+import { ResetSuccessfulComponent } from './reset-successful/reset-successful.component';
 
 const routes: Routes = [
   // { path: '', component: AppComponent},
@@ -19,15 +25,21 @@ const routes: Routes = [
   { path: 'home', component: HomeComponent},
   { path: 'settings', component: SettingsComponent},
   { path: 'personalInfo', component: SettingsPersonalInfoComponent},
-  { path: 'dietaryRestrictions', component: DietaryRestrictionsComponent},
+  { path: 'diet', component: DietaryRestrictionsComponent},
   { path: 'workout', component: WorkoutComponent},
   { path: 'meals', component: MealsComponent},
   { path: 'login', component: LoginComponent},
+  { path: 'logout', component: LogoutComponent},
+  { path: 'update', component: UpdateComponent},
+  { path: 'savedDiet', component: SavedDietComponent},
+  { path: 'securityCheck', component: RetrieveLoginComponent},
+  { path: 'resetPassword', component: PasswordResetComponent},
+  { path: 'resetSuccessful', component: ResetSuccessfulComponent},
   { path: "**", component: ErrorComponent}
 ];
 
 @NgModule({
-  imports: [RouterModule.forRoot(routes)],
+  imports: [RouterModule.forRoot(routes, {useHash: true})],
   exports: [RouterModule]
 })
 
@@ -42,5 +54,11 @@ export const routingComponents = [
   WorkoutComponent,
   MealsComponent,
   ErrorComponent,
-  LoginComponent
+  LoginComponent,
+  LogoutComponent,
+  UpdateComponent,
+  SavedDietComponent,
+  RetrieveLoginComponent,
+  PasswordResetComponent,
+  ResetSuccessfulComponent
 ]

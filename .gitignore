@@ -47,3 +47,6 @@ back-end/config.js
 #api keys
 .env
 googleTranslation.json
+translations.js
+stdout.txt
+stderr.txt

@@ -1,6 +1,8 @@
 import { Component, ViewChild, AfterViewInit, OnInit } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { UsernameService } from '../username.service';
+import { Router } from '@angular/router';
+// import { NgbDropdown } from '@ng-bootstrap/ng-bootstrap';
 
 @Component({
   selector: 'app-settings-personal-info',
@@ -10,6 +12,7 @@ import { UsernameService } from '../username.service';
 export class SettingsPersonalInfoComponent implements OnInit {
 
   constructor(private httpClient: HttpClient,
+              private router: Router,
               private data: UsernameService) { }
 
   email: string;
@@ -23,9 +26,13 @@ export class SettingsPersonalInfoComponent implements OnInit {
   miles: number;
   username: string;
   sex: string;
+  securityQuestion: any;
+  securityQuestionAnswer: string;
 
-  updateSex(e) {
-    this.sex = e.target.value;
+  updateSex() {
+    var inputValue = (<HTMLInputElement>document.getElementById('sex')).value;
+    this.sex = inputValue;
+    console.log(this.sex);
   }
 
   updateEmail(e) {
@@ -48,8 +55,9 @@ export class SettingsPersonalInfoComponent implements OnInit {
     this.weight = e.target.value;
   }
   
-  updateGoals(e) {
-    this.goals = e.target.value;
+  updateGoals() {
+    var inputValue = parseInt((<HTMLInputElement>document.getElementById('goalId')).value);
+    this.goals = inputValue;
   }
 
   updatePushUps(e) {
@@ -57,7 +65,8 @@ export class SettingsPersonalInfoComponent implements OnInit {
   }
 
   updateSquats(e) {
-    this.squats = e.target.value;
+    var inputValue = parseInt((<HTMLInputElement>document.getElementById('squats')).value);
+    this.squats = inputValue;
   }
 
   updateMiles(e) {
@@ -68,29 +77,44 @@ export class SettingsPersonalInfoComponent implements OnInit {
     this.username = e.target.value;
   }
 
+  updateSecurityQuestion(e) {
+    let input = parseInt((<HTMLInputElement>document.getElementById('question')).value);
+    this.securityQuestion = input;
+    console.log(this.securityQuestion)
+  }
+
+  updateSecurityQuestionAnswer(e) {
+    this.securityQuestionAnswer = e.target.value;
+  }
   addUser() {
-    let user;
+    document.cookie = `homeFit=${this.email}`
+    if(this.email === '???'){
+      window.alert('Invalid Email Address')
+    } else {
     this.httpClient.post('/signUp', {
       params: {
         weight: this.weight,
         push_ups: this.push_ups,
         miles: this.miles,
         age: this.age,
-        sex: this.sex,
+        sex: (<HTMLInputElement>document.getElementById('sex')).value,
         height: this.height,
-        squats: this.squats,
-        goals: this.goals,
+        squats: parseInt((<HTMLInputElement>document.getElementById('squats')).value),
+        goals: parseInt((<HTMLInputElement>document.getElementById('goalId')).value),
         email: this.email === 'Enter email' ? '' : this.email,
         userName: this.username === 'What name do you go by ?' ? '' : this.username,
         password: this.password,
+        securityQuestion: this.securityQuestion,
+        securityQuestionAnswer: this.securityQuestionAnswer
       }
     
-    }).subscribe()
+    }).subscribe(()=>this.nutritional())
   }
-  
-  // ngAfterViewInit() {
-  //   this.username = this.child.username;
-  // }
+  }
+
+  nutritional() {
+    this.router.navigate(['/diet']);
+  }
 
   ngOnInit() {
     this.data.currentUsername.subscribe(username => this.username = username);
